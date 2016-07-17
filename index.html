@@ -5,13 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAABPYyMiAAAABmJLR0T///////8JWPfcAAAACXBIWXMAAABIAAAASABGyWs+AAAAF0lEQVRIx2NgGAWjYBSMglEwCkbBSAcACBAAAeaR9cIAAAAASUVORK5CYII=" rel="icon" type="image/x-icon" />
   <script>
-    var city = 'Cambridge, MA'; // TODO - allow input
-    var API_URL = 'http://api.openweathermap.org/data/2.5/weather?q=' + city + '&type=accurate&APPID=0c040a9cff25f3b8906901b1513c2cab';
-
     var canvas = document.createElement('canvas');
     var context = canvas.getContext('2d');
-    canvas.width = 32;
-    canvas.height = 32;
+    canvas.width = canvas.height = 32;
 
     var getJSON = function(url, callback) {
       var xhr = new XMLHttpRequest();
@@ -28,22 +24,35 @@
 
     var draw = function(tempFahrenheit) {
       context.textBaseline = 'top';
-      context.textAlign = 'start';
+      context.textAlign = 'center';
       context.fontStretch = 1;
       context.angle = 0;
 
-      //newSize = context.measureText(text).width // TODO - measure text to determine best font size
-      context.font = "normal normal bold 22px/22px Arial";
+      // TODO - measure text to determine best font size (context.measureText(text).width)
+      var fontSize = tempFahrenheit > 99 ? 16 : 22;
+      context.font = 'normal normal bold ' + fontSize + 'px/' + fontSize + 'px Arial';
       context.fillStyle = '#444';
 
       context.clearRect(0, 0, canvas.width, canvas.height);
-      context.fillText(tempFahrenheit + '°', -1, 4);
 
+      var text = tempFahrenheit + '°';
+      context.fillText(text, 16, tempFahrenheit > 99 ? 8 : 4);
+
+      document.body.querySelector('temp').textContent = text;
       document.head.querySelector('[type="image/x-icon"]').href = canvas.toDataURL();
     };
 
+    var getAPIURL = function(city) {
+      return 'http://api.openweathermap.org/data/2.5/weather?q=' + city + '&type=accurate&APPID=0c040a9cff25f3b8906901b1513c2cab';
+    };
+
     var getTemp = function() {
-      getJSON(API_URL, function (data) {
+      var city = getCity();
+      if (!city) return;
+
+      getJSON(getAPIURL(city), function (data) {
+        if (!data.main) return;
+
         var tempKelvin = data.main.temp;
         var tempFahrenheit = ((tempKelvin - 273.15).toPrecision(4) * 9 / 5 + 32).toPrecision(2);
 
@@ -51,7 +60,71 @@
       });
     };
 
+    var getCity = function() {
+      return localStorage.city || 'Cambridge, MA';
+    };
+
     setInterval(getTemp, 60 * 1000);
     getTemp();
   </script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+      overflow: hidden;
+      margin: 0;
+      background: #eee;
+    }
+
+    temp, input {
+      display: block;
+      font-family: inherit;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      border: 0;
+      width: 100%;
+      text-align: center;
+      color: rgba(0, 0, 0, .6);
+      box-sizing: border-box;
+    }
+
+    temp {
+      pointer-events: none;
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 30vh;
+      left: 0;
+      margin: auto;
+      font-size: 20vmin;
+      font-weight: 300;
+      text-indent: .4em;
+      line-height: 10vh;
+      height: 10vh;
+    }
+
+    input {
+      padding: 20vh 1em 0;
+      font-size: 8vmin;
+      height: 100vh;
+      line-height: 100vh;
+      outline: none;
+      font-weight: 400;
+      background: transparent;
+    }
+  </style>
 </head>
+<body>
+  <temp></temp>
+  <input type="text" placeholder="e.g. Cambridge, MA" autofocus>
+  <script>
+    var input = document.querySelector('input');
+    input.value = getCity();
+
+    var timeout;
+    input.addEventListener('input', function(){
+      localStorage.city = input.value;
+      clearTimeout(timeout);
+      timeout = setTimeout(getTemp, 300);
+    });
+  </script>
+</body>
