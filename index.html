@@ -42,11 +42,16 @@
       document.head.querySelector('[type="image/x-icon"]').href = canvas.toDataURL();
     };
 
-    getJSON(API_URL, function (data) {
-      var tempKelvin = data.main.temp;
-      var tempFahrenheit = ((tempKelvin - 273.15).toPrecision(4) * 9 / 5 + 32).toPrecision(2);
+    var getTemp = function() {
+      getJSON(API_URL, function (data) {
+        var tempKelvin = data.main.temp;
+        var tempFahrenheit = ((tempKelvin - 273.15).toPrecision(4) * 9 / 5 + 32).toPrecision(2);
 
-      draw(tempFahrenheit);
-    });
+        draw(tempFahrenheit);
+      });
+    };
+
+    setInterval(getTemp, 60 * 1000);
+    getTemp();
   </script>
 </head>
