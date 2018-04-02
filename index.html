@@ -1,25 +1,33 @@
+<!--
+
+  TODO
+
+  - Support Fahrenheit and Celsius
+  - Improve favicon
+  - Show map?
+
+-->
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
   <title>&shy;</title>
+
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAABPYyMiAAAABmJLR0T///////8JWPfcAAAACXBIWXMAAABIAAAASABGyWs+AAAAF0lEQVRIx2NgGAWjYBSMglEwCkbBSAcACBAAAeaR9cIAAAAASUVORK5CYII=" rel="icon" type="image/x-icon" />
+
   <script>
+    if ((localStorage.city || localStorage.city === '') && localStorage.city.trim() === '') {
+      delete localStorage.city;
+    }
+
+    var city = localStorage.city;
+
     var canvas = document.createElement('canvas');
     var context = canvas.getContext('2d');
     canvas.width = canvas.height = 32;
 
-    var getJSON = function(url, callback) {
-      var xhr = new XMLHttpRequest();
-
-      xhr.open('GET', url);
-      xhr.onload = function () {
-        if (this.status >= 200 && this.status < 400) {
-          callback(JSON.parse(this.response));
-        }
-      };
-
-      xhr.send();
+    var getInput = function() {
+      return document.querySelector('input');
     };
 
     var draw = function(tempFahrenheit) {
@@ -36,35 +44,95 @@
       var text = tempFahrenheit + '°';
       context.fillText(text, 16, tempFahrenheit > 99 ? 8 : 4);
 
-      document.body.querySelector('temp').textContent = text;
+      if (getInput().value === '') {
+        getInput().value = city;
+      }
+
+      getInput().classList.remove('is-pristine');
+      document.body.querySelector('.temp').textContent = text;
       document.head.querySelector('[type="image/x-icon"]').href = canvas.toDataURL();
+      document.title = getInput().value;
     };
 
-    var getAPIURL = function(city) {
+    var getJSON = function(url, callback, errorCallback) {
+      var xhr = new XMLHttpRequest();
+
+      xhr.open('GET', url);
+      xhr.onload = function () {
+        if (this.status >= 200 && this.status < 400) {
+          callback(JSON.parse(this.response));
+        } else {
+          errorCallback();
+        }
+      };
+
+      xhr.send();
+    };
+
+    var getIPAPIURL = function() {
+      return 'https://api.ipify.org/?format=json';
+    };
+
+    var getGeoAPIURL = function(ip) {
+      return 'http://api.ipstack.com/' + ip + '?access_key=4d4b599908b2013d38b092ae9eeebb90';
+    };
+
+    var getWeatherFromCityAPIURL = function(city) {
       return 'http://api.openweathermap.org/data/2.5/weather?q=' + city + '&type=accurate&APPID=0c040a9cff25f3b8906901b1513c2cab';
     };
 
-    var getTemp = function() {
-      var city = getCity();
-      if (!city) return;
+    var _getWeather = function(weatherAPIURL) {
+      getJSON(weatherAPIURL, function(data){
+        if (!data.main || (city !== data.name && city !== (data.name + ', ' + data.sys.country))) {
+          getInput().classList.add('in-error-state');
+          return;
+        }
 
-      getJSON(getAPIURL(city), function (data) {
-        if (!data.main) return;
+        getInput().classList.remove('in-error-state');
 
         var tempKelvin = data.main.temp;
         var tempFahrenheit = ((tempKelvin - 273.15).toPrecision(4) * 9 / 5 + 32).toPrecision(2);
 
         draw(tempFahrenheit);
+      }, function() {
+        getInput().classList.add('in-error-state');
       });
     };
 
-    var getCity = function() {
-      return localStorage.city || 'Cambridge, MA';
+    var getWeather = function() {
+      var weatherAPIURL;
+
+      if (localStorage.city === '') {
+        return;
+      }
+
+      if (localStorage.city !== undefined) {
+        city = localStorage.city;
+        weatherAPIURL = getWeatherFromCityAPIURL(localStorage.city)
+
+        return _getWeather(weatherAPIURL);
+      }
+
+      getJSON(getIPAPIURL(), function(data){
+        if (!data || !data.ip) {
+          return;
+        }
+
+        getJSON(getGeoAPIURL(data.ip), function(data){
+          if (!data && !data.city && !data.country_code) {
+            return;
+          }
+
+          city = data.city;
+          _getWeather(getWeatherFromCityAPIURL(city));
+        });
+      });
     };
 
-    setInterval(getTemp, 60 * 1000);
-    getTemp();
+    setInterval(getWeather, 60 * 1000);
+    getWeather();
   </script>
+
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
@@ -73,13 +141,13 @@
       color: #8b8d9e;
       background: #efefef;
     }
-    
+
     ::selection {
       color: #efefef;
       background: #8b8d9e;
     }
 
-    temp, input {
+    .temp, input {
       display: block;
       font-family: inherit;
       -webkit-font-smoothing: antialiased;
@@ -91,7 +159,7 @@
       box-sizing: border-box;
     }
 
-    temp {
+    .temp {
       pointer-events: none;
       position: absolute;
       top: 0;
@@ -115,20 +183,38 @@
       font-weight: 400;
       background: transparent;
     }
+
+    input.in-error-state {
+      color: #d63434;
+    }
+
+    input::placeholder {
+      color: rgba(139, 141, 158, .5);
+    }
+
+    input.is-pristine::placeholder {
+      color: transparent;
+    }
   </style>
 </head>
+
 <body>
-  <temp></temp>
-  <input type="text" placeholder="e.g. Cambridge, US" autofocus>
+  <div class="temp"></div>
+  <input class="is-pristine" type="text" placeholder="City[, Country]" spellcheck="false" autofocus>
+
   <script>
-    var input = document.querySelector('input');
-    input.value = getCity();
+    getInput().value = city || '';
+
+    if (getInput().value !== '') {
+      getInput().classList.remove('is-pristine');
+    }
 
     var timeout;
-    input.addEventListener('input', function(){
-      localStorage.city = input.value;
+    getInput().addEventListener('input', function(){
+      getInput().classList.remove('in-error-state');
+      localStorage.city = city = getInput().value;
       clearTimeout(timeout);
-      timeout = setTimeout(getTemp, 300);
+      timeout = setTimeout(getWeather, 300);
     });
   </script>
 </body>
