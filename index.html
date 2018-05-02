@@ -74,11 +74,11 @@
     };
 
     var getGeoAPIURL = function(ip) {
-      return 'http://api.ipstack.com/' + ip + '?access_key=4d4b599908b2013d38b092ae9eeebb90';
+      return 'https://api.ipstack.com/' + ip + '?access_key=4d4b599908b2013d38b092ae9eeebb90';
     };
 
     var getWeatherFromCityAPIURL = function(city) {
-      return 'http://api.openweathermap.org/data/2.5/weather?q=' + city + '&type=accurate&APPID=0c040a9cff25f3b8906901b1513c2cab';
+      return 'https://api.openweathermap.org/data/2.5/weather?q=' + city + '&type=accurate&APPID=0c040a9cff25f3b8906901b1513c2cab';
     };
 
     var _getWeather = function(weatherAPIURL) {
