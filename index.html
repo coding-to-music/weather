@@ -69,12 +69,8 @@
       xhr.send();
     };
 
-    var getIPAPIURL = function() {
-      return 'https://api.ipify.org/?format=json';
-    };
-
-    var getGeoAPIURL = function(ip) {
-      return 'https://api.ipstack.com/' + ip + '?access_key=4d4b599908b2013d38b092ae9eeebb90';
+    var getGeo = function() {
+      return 'https://freegeoip.app/json/';
     };
 
     var getWeatherFromCityAPIURL = function(city) {
@@ -113,19 +109,13 @@
         return _getWeather(weatherAPIURL);
       }
 
-      getJSON(getIPAPIURL(), function(data){
-        if (!data || !data.ip) {
+      getJSON(getGeo(), function(data){
+        if (!data && !data.city) {
           return;
         }
 
-        getJSON(getGeoAPIURL(data.ip), function(data){
-          if (!data && !data.city && !data.country_code) {
-            return;
-          }
-
-          city = data.city;
-          _getWeather(getWeatherFromCityAPIURL(city));
-        });
+        city = data.city;
+        _getWeather(getWeatherFromCityAPIURL(city));
       });
     };
 
