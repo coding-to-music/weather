@@ -1,0 +1,10 @@
+name = "weather"
+type = "webpack"
+route = ''
+zone_id = ''
+usage_model = ''
+compatibility_flags = []
+workers_dev = true
+compatibility_date = "2021-11-04"
+account_id = "32c893914da09e7cb225d5e9c6114f45"
+
